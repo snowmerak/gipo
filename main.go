@@ -300,6 +300,35 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("restore completed")
+	case "clone":
+		cloneCmd := flag.NewFlagSet("clone", flag.ExitOnError)
+		cloneCmd.Usage = func() {
+			fmt.Fprintf(cloneCmd.Output(), "Usage: gitprofiles clone [flags] <repo>\n\nClone a repository using a specific profile and configure local git settings.\n\nArguments:\n  <repo>      Repository to clone (e.g. owner/repo)\n\nFlags:\n")
+			cloneCmd.PrintDefaults()
+		}
+		profile := cloneCmd.String("profile", "", "profile name to use (required)")
+		base := cloneCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
+		cloneCmd.Parse(os.Args[2:])
+
+		args := cloneCmd.Args()
+		if len(args) < 1 {
+			fmt.Fprintln(os.Stderr, "error: repository argument is required")
+			cloneCmd.Usage()
+			os.Exit(2)
+		}
+		repo := args[0]
+
+		if *profile == "" {
+			fmt.Fprintln(os.Stderr, "error: profile name is required")
+			cloneCmd.Usage()
+			os.Exit(2)
+		}
+
+		if err := Clone(*base, *profile, repo); err != nil {
+			fmt.Fprintln(os.Stderr, "clone error:", err)
+			os.Exit(1)
+		}
+		fmt.Println("clone and configuration completed")
 	default:
 		printUsage()
 		os.Exit(2)
@@ -315,6 +344,7 @@ func printUsage() {
 	fmt.Println("  add         Create a new git profile with an SSH key")
 	fmt.Println("  backup      Create an encrypted backup of profiles")
 	fmt.Println("  restore     Restore profiles from an encrypted backup")
+	fmt.Println("  clone       Clone a repository using a specific profile")
 	fmt.Println("  ssh-config  Manage SSH configuration (status/sync)")
 	fmt.Println("\nUse 'gitprofiles <command> -h' for more information about a command.")
 }
