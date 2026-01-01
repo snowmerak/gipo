@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/snowmerak/GitProfiles/backup"
-	"github.com/snowmerak/GitProfiles/key"
+	"github.com/snowmerak/gipo/backup"
+	"github.com/snowmerak/gipo/key"
 )
 
 const envDir = "GITPROFILES_DIR"
@@ -127,7 +127,7 @@ func main() {
 
 	sub := os.Args[1]
 	switch sub {
-	case "init":
+	case "init", "i":
 		initCmd := flag.NewFlagSet("init", flag.ExitOnError)
 		initCmd.Usage = func() {
 			fmt.Fprintf(initCmd.Output(), "Usage: gitprofiles init [flags]\n\nInitialize the gitprofiles directory structure.\n\nFlags:\n")
@@ -140,7 +140,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("initialized")
-	case "add":
+	case "add", "a":
 		addCmd := flag.NewFlagSet("add", flag.ExitOnError)
 		addCmd.Usage = func() {
 			fmt.Fprintf(addCmd.Output(), "Usage: gitprofiles add [flags]\n\nCreate a new git profile with an SSH key.\n\nFlags:\n")
@@ -163,7 +163,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("private: %s\npublic: %s\n", priv, pub)
-	case "list":
+	case "list", "l":
 		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
 		listCmd.Usage = func() {
 			fmt.Fprintf(listCmd.Output(), "Usage: gitprofiles list [flags]\n\nList all available profiles.\n\nFlags:\n")
@@ -175,64 +175,53 @@ func main() {
 			fmt.Fprintln(os.Stderr, "list error:", err)
 			os.Exit(1)
 		}
-	case "ssh-config":
-		if len(os.Args) < 3 {
-			fmt.Println("usage: gitprofiles ssh-config <status|sync> [flags]")
-			os.Exit(2)
+	case "status", "t":
+		statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
+		statusCmd.Usage = func() {
+			fmt.Fprintf(statusCmd.Output(), "Usage: gitprofiles status [flags]\n\nPreview changes to SSH config.\n\nFlags:\n")
+			statusCmd.PrintDefaults()
 		}
-		sub := os.Args[2]
-		switch sub {
-		case "status":
-			statusCmd := flag.NewFlagSet("ssh-config status", flag.ExitOnError)
-			statusCmd.Usage = func() {
-				fmt.Fprintf(statusCmd.Output(), "Usage: gitprofiles ssh-config status [flags]\n\nPreview changes to SSH config.\n\nFlags:\n")
-				statusCmd.PrintDefaults()
-			}
-			cfgPath := statusCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
-			base := statusCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
-			prune := statusCmd.Bool("prune", true, "show entries that would be removed if prune is enabled")
-			statusCmd.Parse(os.Args[3:])
-			adds, removes, err := PreviewSSHConfig(*base, *cfgPath, *prune)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "ssh-config status error:", err)
-				os.Exit(1)
-			}
-			if len(adds) == 0 && len(removes) == 0 {
-				fmt.Println("ssh-config is up to date")
-				return
-			}
-			if len(adds) > 0 {
-				fmt.Println("Entries to add/update:")
-				for _, e := range adds {
-					fmt.Printf("  - alias: %s host: %s identity: %s\n", e.Alias, e.HostName, e.IdentityFile)
-				}
-			}
-			if len(removes) > 0 {
-				fmt.Println("Entries to remove:")
-				for _, a := range removes {
-					fmt.Printf("  - alias: %s\n", a)
-				}
-			}
-		case "sync":
-			syncCmd := flag.NewFlagSet("ssh-config sync", flag.ExitOnError)
-			syncCmd.Usage = func() {
-				fmt.Fprintf(syncCmd.Output(), "Usage: gitprofiles ssh-config sync [flags]\n\nApply changes to SSH config.\n\nFlags:\n")
-				syncCmd.PrintDefaults()
-			}
-			cfgPath := syncCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
-			base := syncCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
-			prune := syncCmd.Bool("prune", true, "remove stale managed entries not present in meta")
-			syncCmd.Parse(os.Args[3:])
-			if err := SyncSSHConfig(*base, *cfgPath, *prune); err != nil {
-				fmt.Fprintln(os.Stderr, "ssh-config sync error:", err)
-				os.Exit(1)
-			}
-			fmt.Println("ssh-config synced")
-		default:
-			fmt.Println("unknown ssh-config subcommand")
-			os.Exit(2)
+		cfgPath := statusCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
+		base := statusCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
+		prune := statusCmd.Bool("prune", true, "show entries that would be removed if prune is enabled")
+		statusCmd.Parse(os.Args[2:])
+		adds, removes, err := PreviewSSHConfig(*base, *cfgPath, *prune)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "status error:", err)
+			os.Exit(1)
 		}
-	case "backup":
+		if len(adds) == 0 && len(removes) == 0 {
+			fmt.Println("ssh-config is up to date")
+			return
+		}
+		if len(adds) > 0 {
+			fmt.Println("Entries to add/update:")
+			for _, e := range adds {
+				fmt.Printf("  - alias: %s host: %s identity: %s\n", e.Alias, e.HostName, e.IdentityFile)
+			}
+		}
+		if len(removes) > 0 {
+			fmt.Println("Entries to remove:")
+			for _, a := range removes {
+				fmt.Printf("  - alias: %s\n", a)
+			}
+		}
+	case "sync", "s":
+		syncCmd := flag.NewFlagSet("sync", flag.ExitOnError)
+		syncCmd.Usage = func() {
+			fmt.Fprintf(syncCmd.Output(), "Usage: gitprofiles sync [flags]\n\nApply changes to SSH config.\n\nFlags:\n")
+			syncCmd.PrintDefaults()
+		}
+		cfgPath := syncCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
+		base := syncCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
+		prune := syncCmd.Bool("prune", true, "remove stale managed entries not present in meta")
+		syncCmd.Parse(os.Args[2:])
+		if err := SyncSSHConfig(*base, *cfgPath, *prune); err != nil {
+			fmt.Fprintln(os.Stderr, "sync error:", err)
+			os.Exit(1)
+		}
+		fmt.Println("ssh-config synced")
+	case "backup", "b":
 		bCmd := flag.NewFlagSet("backup", flag.ExitOnError)
 		bCmd.Usage = func() {
 			fmt.Fprintf(bCmd.Output(), "Usage: gitprofiles backup [flags]\n\nCreate an encrypted backup of profiles.\n\nFlags:\n")
@@ -272,7 +261,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("backup written to", *out)
-	case "restore":
+	case "restore", "r":
 		rCmd := flag.NewFlagSet("restore", flag.ExitOnError)
 		rCmd.Usage = func() {
 			fmt.Fprintf(rCmd.Output(), "Usage: gitprofiles restore [flags]\n\nRestore profiles from an encrypted backup.\n\nFlags:\n")
@@ -312,7 +301,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("restore completed")
-	case "clone":
+	case "clone", "c":
 		cloneCmd := flag.NewFlagSet("clone", flag.ExitOnError)
 		cloneCmd.Usage = func() {
 			fmt.Fprintf(cloneCmd.Output(), "Usage: gitprofiles clone [flags] <repo>\n\nClone a repository using a specific profile and configure local git settings.\n\nArguments:\n  <repo>      Repository to clone (e.g. owner/repo)\n\nFlags:\n")
@@ -352,12 +341,13 @@ func printUsage() {
 	fmt.Println("\nUsage:")
 	fmt.Println("  gitprofiles <command> [flags]")
 	fmt.Println("\nCommands:")
-	fmt.Println("  init        Initialize the gitprofiles directory structure")
-	fmt.Println("  add         Create a new git profile with an SSH key")
-	fmt.Println("  list        List all available profiles")
-	fmt.Println("  backup      Create an encrypted backup of profiles")
-	fmt.Println("  restore     Restore profiles from an encrypted backup")
-	fmt.Println("  clone       Clone a repository using a specific profile")
-	fmt.Println("  ssh-config  Manage SSH configuration (status/sync)")
+	fmt.Println("  init (i)    Initialize the gitprofiles directory structure")
+	fmt.Println("  add (a)     Create a new git profile with an SSH key")
+	fmt.Println("  list (l)    List all available profiles")
+	fmt.Println("  backup (b)  Create an encrypted backup of profiles")
+	fmt.Println("  restore (r) Restore profiles from an encrypted backup")
+	fmt.Println("  clone (c)   Clone a repository using a specific profile")
+	fmt.Println("  sync (s)    Apply changes to SSH config")
+	fmt.Println("  status (t)  Preview changes to SSH config")
 	fmt.Println("\nUse 'gitprofiles <command> -h' for more information about a command.")
 }

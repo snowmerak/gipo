@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/snowmerak/GitProfiles/sshconfig"
+	"github.com/snowmerak/gipo/sshconfig"
 )
 
 // PreviewSSHConfig returns entries to add/update and aliases to remove (if prune==true).

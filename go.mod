@@ -1,4 +1,4 @@
-module github.com/snowmerak/GitProfiles
+module github.com/snowmerak/gipo
 
 go 1.25.5
 
