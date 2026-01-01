@@ -163,6 +163,18 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("private: %s\npublic: %s\n", priv, pub)
+	case "list":
+		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+		listCmd.Usage = func() {
+			fmt.Fprintf(listCmd.Output(), "Usage: gitprofiles list [flags]\n\nList all available profiles.\n\nFlags:\n")
+			listCmd.PrintDefaults()
+		}
+		base := listCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
+		listCmd.Parse(os.Args[2:])
+		if err := ListProfiles(*base); err != nil {
+			fmt.Fprintln(os.Stderr, "list error:", err)
+			os.Exit(1)
+		}
 	case "ssh-config":
 		if len(os.Args) < 3 {
 			fmt.Println("usage: gitprofiles ssh-config <status|sync> [flags]")
@@ -342,6 +354,7 @@ func printUsage() {
 	fmt.Println("\nCommands:")
 	fmt.Println("  init        Initialize the gitprofiles directory structure")
 	fmt.Println("  add         Create a new git profile with an SSH key")
+	fmt.Println("  list        List all available profiles")
 	fmt.Println("  backup      Create an encrypted backup of profiles")
 	fmt.Println("  restore     Restore profiles from an encrypted backup")
 	fmt.Println("  clone       Clone a repository using a specific profile")
