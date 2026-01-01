@@ -235,6 +235,14 @@ func main() {
 			bCmd.Usage()
 			os.Exit(2)
 		}
+		if *base == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "error getting home dir:", err)
+				os.Exit(1)
+			}
+			*base = filepath.Join(home, ".ssh", "git_profiles")
+		}
 		var passBytes []byte
 		if *pass != "" {
 			passBytes = []byte(*pass)
@@ -266,6 +274,14 @@ func main() {
 			fmt.Fprintln(os.Stderr, "error: input file is required")
 			rCmd.Usage()
 			os.Exit(2)
+		}
+		if *base == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "error getting home dir:", err)
+				os.Exit(1)
+			}
+			*base = filepath.Join(home, ".ssh", "git_profiles")
 		}
 		var passBytes []byte
 		if *pass != "" {
