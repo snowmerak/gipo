@@ -108,7 +108,12 @@ func generateRSA(bits int, name, email string) (string, string, error) {
 		return "", "", err
 	}
 
-	pubKeyString := string(ssh.MarshalAuthorizedKey(pubKey)) + fmt.Sprintf(" %s@%s", name, email)
+	pubKeyString := string(ssh.MarshalAuthorizedKey(pubKey))
+	// ssh.MarshalAuthorizedKey ends with newline, trim it to append comment
+	if len(pubKeyString) > 0 && pubKeyString[len(pubKeyString)-1] == '\n' {
+		pubKeyString = pubKeyString[:len(pubKeyString)-1]
+	}
+	pubKeyString += fmt.Sprintf(" %s@%s", name, email)
 
 	return string(privKeyPEM), pubKeyString, nil
 }
@@ -136,7 +141,11 @@ func generateECDSA(curve elliptic.Curve, name, email string) (string, string, er
 			return "", "", err
 		}
 
-		pubKeyString := string(ssh.MarshalAuthorizedKey(pubKey)) + fmt.Sprintf(" %s@%s", name, email)
+		pubKeyString := string(ssh.MarshalAuthorizedKey(pubKey))
+		if len(pubKeyString) > 0 && pubKeyString[len(pubKeyString)-1] == '\n' {
+			pubKeyString = pubKeyString[:len(pubKeyString)-1]
+		}
+		pubKeyString += fmt.Sprintf(" %s@%s", name, email)
 		return string(privKeyPEM), pubKeyString, nil
 	}
 
@@ -150,7 +159,11 @@ func generateECDSA(curve elliptic.Curve, name, email string) (string, string, er
 		return "", "", err
 	}
 
-	pubKeyString := string(ssh.MarshalAuthorizedKey(pubKey)) + fmt.Sprintf(" %s@%s", name, email)
+	pubKeyString := string(ssh.MarshalAuthorizedKey(pubKey))
+	if len(pubKeyString) > 0 && pubKeyString[len(pubKeyString)-1] == '\n' {
+		pubKeyString = pubKeyString[:len(pubKeyString)-1]
+	}
+	pubKeyString += fmt.Sprintf(" %s@%s", name, email)
 
 	return string(privKeyPEM), pubKeyString, nil
 }
@@ -176,7 +189,11 @@ func generateEd25519(name, email string) (string, string, error) {
 		return "", "", err
 	}
 
-	pubKeyString := string(ssh.MarshalAuthorizedKey(sshPubKey)) + fmt.Sprintf(" %s@%s", name, email)
+	pubKeyString := string(ssh.MarshalAuthorizedKey(sshPubKey))
+	if len(pubKeyString) > 0 && pubKeyString[len(pubKeyString)-1] == '\n' {
+		pubKeyString = pubKeyString[:len(pubKeyString)-1]
+	}
+	pubKeyString += fmt.Sprintf(" %s@%s", name, email)
 
 	return string(privKeyPEM), pubKeyString, nil
 }

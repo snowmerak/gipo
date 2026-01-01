@@ -97,7 +97,7 @@ func Add(baseDir, algo, name, email, host string) (privatePath, publicPath strin
 	}
 	var meta map[string]map[string]string
 	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		meta = make(map[string]map[string]string)
+		return privatePath, publicPath, fmt.Errorf("failed to parse keys.json: %w", err)
 	}
 
 	meta[name] = map[string]string{
@@ -121,9 +121,7 @@ func Add(baseDir, algo, name, email, host string) (privatePath, publicPath strin
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("usage: gitprofiles <command> [flags]")
-		fmt.Println("commands: init, add, backup, restore, ssh-config")
-		fmt.Println("use 'gitprofiles ssh-config status' to preview and 'gitprofiles ssh-config sync' to apply")
+		printUsage()
 		os.Exit(2)
 	}
 
@@ -131,6 +129,10 @@ func main() {
 	switch sub {
 	case "init":
 		initCmd := flag.NewFlagSet("init", flag.ExitOnError)
+		initCmd.Usage = func() {
+			fmt.Fprintf(initCmd.Output(), "Usage: gitprofiles init [flags]\n\nInitialize the gitprofiles directory structure.\n\nFlags:\n")
+			initCmd.PrintDefaults()
+		}
 		base := initCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 		initCmd.Parse(os.Args[2:])
 		if err := Init(*base); err != nil {
@@ -140,13 +142,18 @@ func main() {
 		fmt.Println("initialized")
 	case "add":
 		addCmd := flag.NewFlagSet("add", flag.ExitOnError)
+		addCmd.Usage = func() {
+			fmt.Fprintf(addCmd.Output(), "Usage: gitprofiles add [flags]\n\nCreate a new git profile with an SSH key.\n\nFlags:\n")
+			addCmd.PrintDefaults()
+		}
 		algo := addCmd.String("algo", "ed25519", "algorithm (ed25519, rsa2048, rsa4096, p256, p384, p521)")
-		name := addCmd.String("name", "", "profile name")
-		email := addCmd.String("email", "", "email/identity")
+		name := addCmd.String("name", "", "profile name (required)")
+		email := addCmd.String("email", "", "email/identity (required)")
 		host := addCmd.String("host", "", "host to use in ssh config (e.g. github.com)")
 		base := addCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 		addCmd.Parse(os.Args[2:])
 		if *name == "" || *email == "" {
+			fmt.Fprintln(os.Stderr, "error: name and email are required")
 			addCmd.Usage()
 			os.Exit(2)
 		}
@@ -165,6 +172,10 @@ func main() {
 		switch sub {
 		case "status":
 			statusCmd := flag.NewFlagSet("ssh-config status", flag.ExitOnError)
+			statusCmd.Usage = func() {
+				fmt.Fprintf(statusCmd.Output(), "Usage: gitprofiles ssh-config status [flags]\n\nPreview changes to SSH config.\n\nFlags:\n")
+				statusCmd.PrintDefaults()
+			}
 			cfgPath := statusCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
 			base := statusCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 			prune := statusCmd.Bool("prune", true, "show entries that would be removed if prune is enabled")
@@ -192,6 +203,10 @@ func main() {
 			}
 		case "sync":
 			syncCmd := flag.NewFlagSet("ssh-config sync", flag.ExitOnError)
+			syncCmd.Usage = func() {
+				fmt.Fprintf(syncCmd.Output(), "Usage: gitprofiles ssh-config sync [flags]\n\nApply changes to SSH config.\n\nFlags:\n")
+				syncCmd.PrintDefaults()
+			}
 			cfgPath := syncCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
 			base := syncCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 			prune := syncCmd.Bool("prune", true, "remove stale managed entries not present in meta")
@@ -207,11 +222,16 @@ func main() {
 		}
 	case "backup":
 		bCmd := flag.NewFlagSet("backup", flag.ExitOnError)
-		out := bCmd.String("out", "", "output encrypted backup file")
+		bCmd.Usage = func() {
+			fmt.Fprintf(bCmd.Output(), "Usage: gitprofiles backup [flags]\n\nCreate an encrypted backup of profiles.\n\nFlags:\n")
+			bCmd.PrintDefaults()
+		}
+		out := bCmd.String("out", "", "output encrypted backup file (required)")
 		base := bCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 		pass := bCmd.String("pass", "", "passphrase for encryption (optional; prompt if empty)")
 		bCmd.Parse(os.Args[2:])
 		if *out == "" {
+			fmt.Fprintln(os.Stderr, "error: output file is required")
 			bCmd.Usage()
 			os.Exit(2)
 		}
@@ -234,11 +254,16 @@ func main() {
 		fmt.Println("backup written to", *out)
 	case "restore":
 		rCmd := flag.NewFlagSet("restore", flag.ExitOnError)
-		in := rCmd.String("in", "", "input encrypted backup file")
+		rCmd.Usage = func() {
+			fmt.Fprintf(rCmd.Output(), "Usage: gitprofiles restore [flags]\n\nRestore profiles from an encrypted backup.\n\nFlags:\n")
+			rCmd.PrintDefaults()
+		}
+		in := rCmd.String("in", "", "input encrypted backup file (required)")
 		base := rCmd.String("base", os.Getenv(envDir), "target base directory for restore (overrides HOME)")
 		pass := rCmd.String("pass", "", "passphrase for decryption (optional; prompt if empty)")
 		rCmd.Parse(os.Args[2:])
 		if *in == "" {
+			fmt.Fprintln(os.Stderr, "error: input file is required")
 			rCmd.Usage()
 			os.Exit(2)
 		}
@@ -260,7 +285,20 @@ func main() {
 		}
 		fmt.Println("restore completed")
 	default:
-		fmt.Println("unknown command")
+		printUsage()
 		os.Exit(2)
 	}
+}
+
+func printUsage() {
+	fmt.Println("GitProfiles - Manage multiple git profiles and SSH keys")
+	fmt.Println("\nUsage:")
+	fmt.Println("  gitprofiles <command> [flags]")
+	fmt.Println("\nCommands:")
+	fmt.Println("  init        Initialize the gitprofiles directory structure")
+	fmt.Println("  add         Create a new git profile with an SSH key")
+	fmt.Println("  backup      Create an encrypted backup of profiles")
+	fmt.Println("  restore     Restore profiles from an encrypted backup")
+	fmt.Println("  ssh-config  Manage SSH configuration (status/sync)")
+	fmt.Println("\nUse 'gitprofiles <command> -h' for more information about a command.")
 }

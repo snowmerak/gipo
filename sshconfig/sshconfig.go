@@ -89,8 +89,8 @@ func RemoveEntry(configPath, alias string) error {
 	if idx := strings.Index(content, begin); idx != -1 {
 		endIdx := strings.Index(content[idx:], end)
 		if endIdx == -1 {
-			// malformed, just remove from begin to end of file
-			content = content[:idx]
+			// malformed, return error to avoid accidental deletion
+			return fmt.Errorf("malformed config: found BEGIN marker for %s but no END marker", alias)
 		} else {
 			endIdx = idx + endIdx + len(end)
 			if endIdx < len(content) && content[endIdx] == '\n' {

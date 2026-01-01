@@ -10,7 +10,11 @@ import (
 	"github.com/snowmerak/GitProfiles/sshconfig"
 )
 
-// PreviewSSHConfig returns entries to add/update and aliases to remove (if prune==true)
+// PreviewSSHConfig returns entries to add/update and aliases to remove (if prune==true).
+// It compares the desired state (from keys.json) with the current state (from ssh config file).
+// baseDir is the root directory of gitprofiles (default: ~/.ssh/git_profiles).
+// cfgPath is the path to the ssh config file (default: ~/.ssh/config).
+// prune indicates whether to remove managed entries that are no longer in keys.json.
 func PreviewSSHConfig(baseDir, cfgPath string, prune bool) (adds []sshconfig.Entry, removes []string, err error) {
 	if baseDir == "" {
 		home, err := os.UserHomeDir()
@@ -81,7 +85,8 @@ func PreviewSSHConfig(baseDir, cfgPath string, prune bool) (adds []sshconfig.Ent
 	return adds, removes, nil
 }
 
-// SyncSSHConfig now uses PreviewSSHConfig to get the plan and apply it
+// SyncSSHConfig applies the changes calculated by PreviewSSHConfig to the ssh config file.
+// It adds or updates entries for profiles and removes stale entries if prune is true.
 func SyncSSHConfig(baseDir, cfgPath string, prune bool) error {
 	adds, removes, err := PreviewSSHConfig(baseDir, cfgPath, prune)
 	if err != nil {
