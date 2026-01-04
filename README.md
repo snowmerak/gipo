@@ -15,7 +15,7 @@
 
 ### From Source
 
-Ensure you have Go installed (1.21+ recommended).
+Ensure you have Go installed (1.25+ recommended).
 
 ```bash
 go install github.com/snowmerak/gipo@latest
