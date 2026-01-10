@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -19,20 +19,24 @@ func ListProfiles(baseDir string) error {
 		baseDir = filepath.Join(home, ".ssh", "git_profiles")
 	}
 
-	metaPath := filepath.Join(baseDir, "meta", "keys.json")
-	metaBytes, err := os.ReadFile(metaPath)
+	meta, err := LoadProfiles(baseDir)
 	if err != nil {
-		// If file doesn't exist, just say no profiles
+		// If file doesn't exist (e.g. init not run or empty), LoadProfiles returns error.
+		// Check if it is a path error or just empty.
+		// Actually LoadProfiles uses os.ReadFile which returns PathError if not found.
 		if os.IsNotExist(err) {
 			fmt.Println("No profiles found.")
 			return nil
 		}
+		// If meta/keys.json doesn't exist, we can treat it as empty.
+		// os.ReadFile returns error specific to the file.
+		// Let's rely on error message or explicit check if needed.
+		// For simplicity, just return error unless it is file not found.
+		if strings.Contains(err.Error(), "The system cannot find") || strings.Contains(err.Error(), "no such file") {
+			fmt.Println("No profiles found.")
+			return nil
+		}
 		return fmt.Errorf("failed to read profiles: %w", err)
-	}
-
-	var meta map[string]map[string]string
-	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		return fmt.Errorf("failed to parse profiles: %w", err)
 	}
 
 	if len(meta) == 0 {

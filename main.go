@@ -90,20 +90,30 @@ func Add(baseDir, algo, name, email, host string) (privatePath, publicPath strin
 	}
 
 	// update meta
-	metaPath := filepath.Join(baseDir, "meta", "keys.json")
-	metaBytes, err := os.ReadFile(metaPath)
+	meta, err := LoadProfiles(baseDir)
 	if err != nil {
-		return privatePath, publicPath, err
+		// if load fails, maybe it doesn't exist or is corrupted, try to start empty if not exist
+		// but Init() ensures it exists with {}. LoadProfiles returns error if parse fails.
+		// If it's just keys.json missing despite Init, we can create new map.
+		meta = make(map[string]map[string]string)
 	}
-	var meta map[string]map[string]string
-	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		return privatePath, publicPath, fmt.Errorf("failed to parse keys.json: %w", err)
-	}
+
+	// We want to store RELATIVE paths or just filename to be cleaner in JSON,
+	// but currently LoadProfiles reconstructs ABSOLUTE paths for usage.
+	// For storage, we can store relative path "keys/filename".
+
+	// Re-calculate relative paths for storage
+	relPrivate := filepath.Join("keys", filepath.Base(privatePath))
+	// On Windows Join uses backslash. To be cross-platform friendly in JSON, we can convert to slashes.
+	relPrivate = filepath.ToSlash(relPrivate)
+
+	relPublic := filepath.Join("keys", filepath.Base(publicPath))
+	relPublic = filepath.ToSlash(relPublic)
 
 	meta[name] = map[string]string{
 		"algo":    algo,
-		"private": privatePath,
-		"public":  publicPath,
+		"private": relPrivate,
+		"public":  relPublic,
 		"email":   email,
 		"host":    host,
 	}
@@ -112,6 +122,8 @@ func Add(baseDir, algo, name, email, host string) (privatePath, publicPath strin
 	if err != nil {
 		return privatePath, publicPath, err
 	}
+	// metaPath needs to be reconstructed since we removed it from scope
+	metaPath := filepath.Join(baseDir, "meta", "keys.json")
 	if err := os.WriteFile(metaPath, out, 0o600); err != nil {
 		return privatePath, publicPath, err
 	}

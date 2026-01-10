@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -20,14 +19,9 @@ func Clone(baseDir, profileName, repoArg string) error {
 	}
 
 	// Load profile
-	metaPath := filepath.Join(baseDir, "meta", "keys.json")
-	metaBytes, err := os.ReadFile(metaPath)
+	meta, err := LoadProfiles(baseDir)
 	if err != nil {
 		return fmt.Errorf("failed to read profiles: %w", err)
-	}
-	var meta map[string]map[string]string
-	if err := json.Unmarshal(metaBytes, &meta); err != nil {
-		return fmt.Errorf("failed to parse profiles: %w", err)
 	}
 
 	profile, ok := meta[profileName]

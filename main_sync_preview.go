@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,13 +27,8 @@ func PreviewSSHConfig(baseDir, cfgPath string, prune bool) (adds []sshconfig.Ent
 		cfgPath = filepath.Join(home, ".ssh", "config")
 	}
 
-	metaPath := filepath.Join(baseDir, "meta", "keys.json")
-	b, err := os.ReadFile(metaPath)
+	meta, err := LoadProfiles(baseDir)
 	if err != nil {
-		return nil, nil, err
-	}
-	var meta map[string]map[string]string
-	if err := json.Unmarshal(b, &meta); err != nil {
 		return nil, nil, err
 	}
 
