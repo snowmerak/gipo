@@ -3,6 +3,7 @@ package sshconfig
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func AddOrReplaceEntry(configPath string, e Entry) error {
 		if err != nil {
 			return err
 		}
-		configPath = fmt.Sprintf("%s/.ssh/config", home)
+		configPath = filepath.Join(home, ".ssh", "config")
 	}
 
 	b, err := os.ReadFile(configPath)
@@ -38,7 +39,7 @@ func AddOrReplaceEntry(configPath string, e Entry) error {
 		fmt.Sprintf("Host %s", e.Alias),
 		fmt.Sprintf("    HostName %s", e.HostName),
 		fmt.Sprintf("    User %s", e.User),
-		fmt.Sprintf("    IdentityFile %s", e.IdentityFile),
+		fmt.Sprintf("    IdentityFile \"%s\"", e.IdentityFile),
 		"    IdentitiesOnly yes",
 		end,
 	}
@@ -75,7 +76,7 @@ func RemoveEntry(configPath, alias string) error {
 		if err != nil {
 			return err
 		}
-		configPath = fmt.Sprintf("%s/.ssh/config", home)
+		configPath = filepath.Join(home, ".ssh", "config")
 	}
 
 	b, err := os.ReadFile(configPath)
@@ -110,7 +111,7 @@ func ListEntries(configPath string) ([]Entry, error) {
 		if err != nil {
 			return nil, err
 		}
-		configPath = fmt.Sprintf("%s/.ssh/config", home)
+		configPath = filepath.Join(home, ".ssh", "config")
 	}
 
 	b, err := os.ReadFile(configPath)
@@ -135,7 +136,7 @@ func ListEntries(configPath string) ([]Entry, error) {
 				} else if strings.HasPrefix(l, "User ") {
 					e.User = strings.TrimSpace(strings.TrimPrefix(l, "User "))
 				} else if strings.HasPrefix(l, "IdentityFile ") {
-					e.IdentityFile = strings.TrimSpace(strings.TrimPrefix(l, "IdentityFile "))
+					e.IdentityFile = strings.Trim(strings.TrimSpace(strings.TrimPrefix(l, "IdentityFile ")), "\"")
 				} else if strings.HasPrefix(l, "# END GITPROFILES ") {
 					out = append(out, e)
 					i = j

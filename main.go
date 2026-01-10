@@ -181,7 +181,11 @@ func main() {
 			fmt.Fprintf(statusCmd.Output(), "Usage: gitprofiles status [flags]\n\nPreview changes to SSH config.\n\nFlags:\n")
 			statusCmd.PrintDefaults()
 		}
-		cfgPath := statusCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
+		defaultConfig := ""
+		if home, err := os.UserHomeDir(); err == nil {
+			defaultConfig = filepath.Join(home, ".ssh", "config")
+		}
+		cfgPath := statusCmd.String("config", defaultConfig, "ssh config file path")
 		base := statusCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 		prune := statusCmd.Bool("prune", true, "show entries that would be removed if prune is enabled")
 		statusCmd.Parse(os.Args[2:])
@@ -212,7 +216,11 @@ func main() {
 			fmt.Fprintf(syncCmd.Output(), "Usage: gitprofiles sync [flags]\n\nApply changes to SSH config.\n\nFlags:\n")
 			syncCmd.PrintDefaults()
 		}
-		cfgPath := syncCmd.String("config", os.ExpandEnv("$HOME/.ssh/config"), "ssh config file path")
+		defaultConfig := ""
+		if home, err := os.UserHomeDir(); err == nil {
+			defaultConfig = filepath.Join(home, ".ssh", "config")
+		}
+		cfgPath := syncCmd.String("config", defaultConfig, "ssh config file path")
 		base := syncCmd.String("base", os.Getenv(envDir), "base directory for gitprofiles (overrides HOME)")
 		prune := syncCmd.Bool("prune", true, "remove stale managed entries not present in meta")
 		syncCmd.Parse(os.Args[2:])

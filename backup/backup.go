@@ -53,6 +53,9 @@ func createTarGzip(root string) ([]byte, error) {
 		if rel == "." {
 			return nil
 		}
+		// ensure forward slashes for tar header name (cross-platform compatibility)
+		rel = filepath.ToSlash(rel)
+
 		hdr, err := tar.FileInfoHeader(info, "")
 		if err != nil {
 			return err
